@@ -13,19 +13,35 @@ try{
 }catch{$('#storage-note').textContent='Не удалось прочитать сохранение. Показан стартовый список.';}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(books));}catch{$('#storage-note').textContent='Сохранение недоступно. Изменения останутся только до закрытия страницы.';}}
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
-function cover(book,index){
+function cover(book,index,photo=false){
  const button=el('button','cover'+(book.read?' read':''));button.type='button';button.style.setProperty('--tilt',`${[-2,1,0,-1,2][index%5]}deg`);button.style.setProperty('--color',['#173747','#6b392b','#b29258','#243941','#272e25'][index%5]);button.setAttribute('aria-label',`${book.read?'Вернуть в планы':'Отметить прочитанной'}: ${book.title}`);button.setAttribute('aria-pressed',String(book.read));button.title=`${book.title} — ${book.author}`;
  const fallback=el('span','fallback');fallback.append(el('small','', 'READ IN 60'),el('strong','',book.title),el('span','',book.author));button.append(fallback);
- if(book.isbn){const img=el('img');img.src=`https://covers.openlibrary.org/b/isbn/${encodeURIComponent(book.isbn)}-M.jpg?default=false`;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();button.append(img);}
+ if(book.isbn&&!photo){const img=el('img');img.src=`https://covers.openlibrary.org/b/isbn/${encodeURIComponent(book.isbn)}-M.jpg?default=false`;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();button.append(img);}
  button.append(el('span','cross'));button.onclick=()=>{const inPreview=button.closest('#preview-board')!==null;book.read=!book.read;save();render();const area=inPreview?$('#preview-board'):$('#full-board');const replacement=Array.from(area.querySelectorAll('button')).find(b=>b.dataset.id===book.id);(replacement||$('#filter')).focus({preventScroll:true});};button.dataset.id=book.id;return button;
 }
-const previewGroups=[['ARCHITECTURE','architecture'],['JAVA','java'],['SYSTEMS','systems'],['DATA','data'],['TESTING','testing'],['OTHER','other']];
+// Book positions measured against the supplied 1536 × 1024 reference.
+const previewBooks=[
+ ['9780134494166',613,177,108,143,-3],['9780321125217',740,165,106,148,-2],
+ ['9780201633610',611,332,109,146,-1],['9781491950357',738,327,108,148,0],
+ ['9780134685991',881,158,104,150,-2],['9780321349606',1010,148,106,157,-2],
+ ['9781617293566',882,326,104,149,0],['9781492056119',1012,316,105,155,0],
+ ['9781449373320',1159,142,112,156,-2],['9781491929124',1305,132,114,159,-2],
+ ['9781985086593',1158,313,112,157,0],['9780133594140',1305,306,116,162,0],
+ ['9781492040347',595,533,99,132,0],['9783950307825',714,531,106,139,0],
+ ['9781491936160',592,678,107,119,1],['9781491983874',712,681,110,120,1],
+ ['9780131177055',866,527,108,144,0],['9780135957059',1010,526,108,149,0],
+ ['9780321601919',866,681,109,124,1],['9781491935675',1009,684,109,130,1],
+ ['9780134757599',1167,525,107,150,0],['9780132350884',1310,525,111,153,0],
+ ['9781942788003',1167,685,109,137,1],['9781942788812',1311,689,113,139,1]
+];
+const iconPaths={architecture:'M12 2 22 7v10l-10 5L2 17V7Zm0 10L2 7m10 5L22 7M12 12v10',java:'M4 10h13v5a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6Zm13 1h2a3 3 0 0 1 0 6h-3M8 2c-3 3 3 3 0 6m5-7c-3 3 3 3 0 6M2 22h20',data:'M3 6c0-5 18-5 18 0s-18 5-18 0Zm0 0v12c0 5 18 5 18 0V6M3 12c0 5 18 5 18 0',systems:'m9 3 1-2h4l1 2 3 2 3 1 1 4-2 2v3l1 3-3 3-3-1h-3l-3 1-3-3 1-3v-3l-2-2 1-4 3-1Zm7 9a4 4 0 1 0-8 0 4 4 0 0 0 8 0',devops:'M12 6v5m0 2-7 5m7-5 7 5M5 4l5 1m4 0 5-1M12 1a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM3 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm18 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',testing:'M8 2h8M10 2v7L3 21q-1 2 2 2h14q3 0 2-2L14 9V2M7 16h10m-6 3h1',people:'M12 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-4 9h8l2 9H6ZM3 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm18 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM4 13H2l-1 7h3m16-7h2l1 7h-3',other:'M2 2h8v8H2Zm12 0h8v8h-8ZM2 14h8v8H2Zm12 0h8v8h-8Z'};
+function categoryIcon(id){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',iconPaths[id]);svg.append(path);return svg;}
 function render(){
  const done=books.filter(b=>b.read).length;$('#total').textContent=books.length;$('#done').textContent=done;$('#left').textContent=books.length-done;$('#percent').textContent=`${books.length?Math.round(done/books.length*100):0}%`;
  $('#preview-board').replaceChildren();
- for(const [name,key]of previewGroups){const group=el('div','board-group');group.append(el('h3','',name));const grid=el('div','mini-grid');books.filter(b=>b.category===key).slice(0,4).forEach((b,i)=>grid.append(cover(b,i)));group.append(grid);$('#preview-board').append(group);}
+ for(const [id,x,y,w,h,angle]of previewBooks){const b=books.find(b=>b.id===id);if(!b)continue;const button=cover(b,0,true);button.classList.add('photo-book');button.querySelectorAll('img,.fallback').forEach(n=>n.remove());button.style.left=`${(x-570)/880*100}%`;button.style.top=`${(y-100)/750*100}%`;button.style.width=`${w/880*100}%`;button.style.height=`${h/750*100}%`;button.style.setProperty('--angle',`${angle}deg`);$('#preview-board').append(button);}
  $('#categories').replaceChildren();
- for(const [id,name,,icon]of categories){const button=el('button','category'+(activeCategory===id?' active':''));button.setAttribute('aria-pressed',String(activeCategory===id));const text=el('span','',name);text.append(el('small','',`${books.filter(b=>b.category===id).length} книг`));button.append(el('i','',icon),text);button.onclick=()=>{activeCategory=activeCategory===id?'all':id;render();$('#list').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});};$('#categories').append(button);}
+ for(const [id,name,,icon]of categories){const button=el('button','category'+(activeCategory===id?' active':''));button.setAttribute('aria-pressed',String(activeCategory===id));const text=el('span','',name);text.append(el('small','',`${books.filter(b=>b.category===id).length} книг`));button.append(categoryIcon(id),text);button.onclick=()=>{activeCategory=activeCategory===id?'all':id;render();$('#list').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});};$('#categories').append(button);}
  const query=$('#search').value.trim().toLowerCase();const status=$('#filter').value;
  const visible=books.filter(b=>(activeCategory==='all'||b.category===activeCategory)&&(status==='all'||b.read===(status==='read'))&&`${b.title} ${b.author}`.toLowerCase().includes(query));
  $('#summary').textContent=`${visible.length} книг на доске`;$('#full-board').replaceChildren();$('#empty').hidden=visible.length>0;$('#full-board').hidden=visible.length===0;
