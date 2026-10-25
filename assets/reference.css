@@ -9,3 +9,15 @@ body{font-family:Roboto,Arial,sans-serif}body::before{content:none}.reference-st
 .cover:not(.photo-book):focus-visible{filter:brightness(1.18)}
 .reference-stage .photo-book:focus-visible::before{content:'';position:absolute;display:block;top:7%;left:47%;width:6%;height:4%;border-radius:50%;background:#fff;box-shadow:0 0 3px #000;z-index:4}
 .reference-stage .category:is(.active,:hover,:focus-visible),.reference-stage .category:is(.active,:hover,:focus-visible) span,.reference-stage .category:is(.active,:hover,:focus-visible) small{color:var(--yellow)}
+
+/* A category replaces the photographic overview in place. */
+.reference-stage .hero-board.category-view{background:url('paper.svg'),#bda078;border:5px ridge #665037;box-shadow:inset 0 0 45px #50371d66,0 4px 12px #0005;transform:rotate(-1deg);color:#251b10}
+.reference-stage .category-view #preview-board{position:absolute;inset:0;display:flex;flex-direction:column;padding:1.5cqw;gap:1.2cqw}
+.focused-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-shrink:0;border-bottom:1px solid #57422855;padding-bottom:.7cqw}
+.focused-heading h2{font:700 2.8cqw/1 Caveat,cursive;margin:0}.focused-heading p{font-size:.85cqw;margin:8px 0 0;color:#50402c}
+.board-back{background:#37291a;color:#ffebae;border:0;border-radius:4px;padding:.65cqw .85cqw;font-size:.9cqw;white-space:nowrap}
+.focused-books{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.3cqw 1.6cqw;overflow:auto;overscroll-behavior:contain;padding:5px;align-content:start;min-height:0;scrollbar-color:#6b5231 #bda078;scrollbar-width:thin}
+.focused-book{min-width:0}.reference-stage .focused-book .cover{max-width:100%;width:100%;aspect-ratio:2/3;margin:0;transform:none}.reference-stage .focused-book .cover:hover{transform:none;filter:brightness(1.1)}
+.focused-book>p{font-size:.85cqw;line-height:1.25;margin:8px 0 0;overflow-wrap:anywhere}.focused-book .fallback strong{font-size:1.4cqw}.focused-book .fallback span{font-size:.6cqw}
+.reference-stage .focused-book .cover:focus-visible{outline:none;filter:brightness(1.25)}
+@media(max-width:760px){.reference-stage .hero-board.category-view{min-height:430px;aspect-ratio:auto;height:550px;transform:none;width:calc(100% - 24px);margin:0 12px}.reference-stage .category-view #preview-board{padding:15px;gap:14px}.focused-heading{padding-bottom:12px}.focused-heading h2{font-size:30px}.focused-heading p{font-size:11px}.board-back{font-size:11px;padding:9px}.focused-books{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 13px}.focused-book>p{font-size:10px}.focused-book .fallback strong{font-size:14px}.focused-book .fallback span{font-size:7px}}

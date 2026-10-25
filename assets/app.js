@@ -52,9 +52,23 @@ function categoryIcon(id){const svg=document.createElementNS('http://www.w3.org/
 function render(){
  const done=books.filter(b=>b.read).length;$('#total').textContent=books.length;$('#done').textContent=done;$('#left').textContent=books.length-done;$('#percent').textContent=`${books.length?Math.round(done/books.length*100):0}%`;
  $('#preview-board').replaceChildren();
+ $('.hero-board').classList.toggle('category-view',activeCategory!=='all');
+ if(activeCategory!=='all'){
+  const category=categories.find(c=>c[0]===activeCategory);
+  const selected=books.filter(b=>b.category===activeCategory);
+  const heading=el('div','focused-heading');
+  const title=el('div');title.append(el('h2','',category[1]),el('p','',`${selected.filter(b=>b.read).length} / ${selected.length} прочитано`));
+  const back=el('button','board-back','← Вся доска');back.type='button';back.onclick=()=>{const previous=activeCategory;activeCategory='all';render();document.querySelector(`[data-category="${previous}"]`)?.focus({preventScroll:true});};
+  heading.append(title,back);
+  const grid=el('div','focused-books');
+  selected.forEach((book,i)=>{const card=el('div','focused-book');card.append(cover(book,i),el('p','',book.title));grid.append(card);});
+  $('#preview-board').append(heading,grid);
+ }else{
+
  for(const [id,corners]of previewBooks){const b=books.find(b=>b.id===id);if(!b)continue;const x=Math.min(...corners.map(p=>p[0])),y=Math.min(...corners.map(p=>p[1]));const w=Math.max(...corners.map(p=>p[0]))-x,h=Math.max(...corners.map(p=>p[1]))-y;const button=cover(b,0,true);button.classList.add('photo-book');button.querySelectorAll('img,.fallback').forEach(n=>n.remove());button.style.left=`${(x-570)/880*100}%`;button.style.top=`${(y-100)/750*100}%`;button.style.width=`${w/880*100}%`;button.style.height=`${h/750*100}%`;button.style.clipPath=`polygon(${corners.map(([cx,cy])=>`${(cx-x)/w*100}% ${(cy-y)/h*100}%`).join(',')})`;$('#preview-board').append(button);}
+ }
  $('#categories').replaceChildren();
- for(const [id,name,,icon]of categories){const button=el('button','category'+(activeCategory===id?' active':''));button.setAttribute('aria-pressed',String(activeCategory===id));const text=el('span','',name);text.append(el('small','',`${books.filter(b=>b.category===id).length} книг`));button.append(categoryIcon(id),text);button.onclick=()=>{activeCategory=activeCategory===id?'all':id;render();$('#list').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});};$('#categories').append(button);}
+ for(const [id,name,,icon]of categories){const button=el('button','category'+(activeCategory===id?' active':''));button.setAttribute('aria-pressed',String(activeCategory===id));button.dataset.category=id;const text=el('span','',name);text.append(el('small','',`${books.filter(b=>b.category===id).length} книг`));button.append(categoryIcon(id),text);button.onclick=()=>{activeCategory=activeCategory===id?'all':id;render();document.querySelector(`[data-category="${id}"]`)?.focus({preventScroll:true});};$('#categories').append(button);}
  const query=$('#search').value.trim().toLowerCase();const status=$('#filter').value;
  const visible=books.filter(b=>(activeCategory==='all'||b.category===activeCategory)&&(status==='all'||b.read===(status==='read'))&&`${b.title} ${b.author}`.toLowerCase().includes(query));
  $('#summary').textContent=`${visible.length} книг на доске`;$('#full-board').replaceChildren();$('#empty').hidden=visible.length>0;$('#full-board').hidden=visible.length===0;
