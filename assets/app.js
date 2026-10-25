@@ -19,7 +19,7 @@ function cover(book,index,photo=false){
  const fallback=el('span','fallback');fallback.append(el('small','', 'READ IN 60'),el('strong','',book.title),el('span','',book.author));button.append(fallback);
  const source=imageUrl(book.coverUrl)||(book.isbn?`https://covers.openlibrary.org/b/isbn/${encodeURIComponent(book.isbn)}-M.jpg?default=false`:'');
  if(source&&!photo){const img=el('img');img.referrerPolicy='no-referrer';img.src=source;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();button.append(img);}
- button.append(el('span','cross'));button.onclick=()=>{const inPreview=button.closest('#preview-board')!==null;book.read=!book.read;save();render();const area=inPreview?$('#preview-board'):$('#full-board');const replacement=Array.from(area.querySelectorAll('button')).find(b=>b.dataset.id===book.id);(replacement||$('#filter')).focus({preventScroll:true});};button.dataset.id=book.id;return button;
+ button.append(el('span','cross'));button.onclick=async()=>{button.disabled=true;try{if(currentUser)await api('/books/'+encodeURIComponent(book.id),{method:'PATCH',body:{read:!book.read}});}catch(error){$('#storage-note').textContent=error.message;button.disabled=false;return;}const inPreview=button.closest('#preview-board')!==null;book.read=!book.read;if(!currentUser)save();render();const area=inPreview?$('#preview-board'):$('#full-board');const replacement=Array.from(area.querySelectorAll('button')).find(b=>b.dataset.id===book.id);(replacement||$('#filter')).focus({preventScroll:true});};button.dataset.id=book.id;return button;
 }
 // Four cover corners in the 1536 × 1024 photographic board.
 // Polygon clipping keeps pointer targets inside each book, including its perspective.
@@ -74,7 +74,7 @@ function render(){
  const query=$('#search').value.trim().toLowerCase();const status=$('#filter').value;
  const visible=books.filter(b=>(activeCategory==='all'||b.category===activeCategory)&&(status==='all'||b.read===(status==='read'))&&`${b.title} ${b.author}`.toLowerCase().includes(query));
  $('#summary').textContent=`${visible.length} книг на доске`;$('#full-board').replaceChildren();$('#empty').hidden=visible.length>0;$('#full-board').hidden=visible.length===0;
- for(const [id,name,english]of categories){const selected=visible.filter(b=>b.category===id);if(!selected.length)continue;const section=el('section','full-group');section.append(el('h3','',`${english} / ${name}`));const grid=el('div','book-grid');selected.forEach((b,i)=>{const card=el('div','book-card');card.append(cover(b,i),el('p','book-label',b.title),el('p','book-author',b.author));if(!b.isbn){const remove=el('button','delete','Удалить');remove.onclick=()=>{if(confirm(`Удалить «${b.title}»?`)){books=books.filter(n=>n.id!==b.id);save();render();}};card.append(remove);}grid.append(card);});section.append(grid);$('#full-board').append(section);}
+ for(const [id,name,english]of categories){const selected=visible.filter(b=>b.category===id);if(!selected.length)continue;const section=el('section','full-group');section.append(el('h3','',`${english} / ${name}`));const grid=el('div','book-grid');selected.forEach((b,i)=>{const card=el('div','book-card');card.append(cover(b,i),el('p','book-label',b.title),el('p','book-author',b.author));if(!b.isbn){const remove=el('button','delete','Удалить');remove.onclick=async()=>{if(confirm(`Удалить «${b.title}»?`)){try{if(currentUser)await api('/books/'+encodeURIComponent(b.id),{method:'DELETE'});books=books.filter(n=>n.id!==b.id);if(!currentUser)save();render();}catch(error){$('#storage-note').textContent=error.message;}}};card.append(remove);}grid.append(card);});section.append(grid);$('#full-board').append(section);}
 }
 $('#search').addEventListener('input',render);$('#filter').addEventListener('change',render);$('#clear-category').onclick=()=>{activeCategory='all';render();};
 for(const [id,name]of categories){const option=el('option','',name);option.value=id;$('#add-category').append(option);}
@@ -88,5 +88,26 @@ coverInput.addEventListener('input',()=>{
  coverPreview.onload=()=>{coverPreview.hidden=false;coverStatus.textContent='';};
  coverPreview.onerror=()=>{coverPreview.hidden=true;coverStatus.textContent='Не удалось загрузить картинку. Проверь ссылку; пока будет показана обложка с названием.';};coverPreview.src=url;
 });
-$('#add-form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;const title=form.elements.title.value.trim(),author=form.elements.author.value.trim();if(!title||!author||!imageUrl(form.elements.coverUrl.value.trim()))return;books.push({id:crypto.randomUUID(),title,author,category:form.elements.category.value,coverUrl:imageUrl(form.elements.coverUrl.value.trim()),read:false});save();form.reset();resetCoverPreview();$('#add-dialog').close();activeCategory='all';$('#search').value='';$('#filter').value='all';render();$('#list').scrollIntoView();};
+$('#add-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget;const title=form.elements.title.value.trim(),author=form.elements.author.value.trim();if(!title||!author||!imageUrl(form.elements.coverUrl.value.trim()))return;const submit=form.querySelector('[type=submit]');submit.disabled=true;try{const draft={title,author,category:form.elements.category.value,coverUrl:imageUrl(form.elements.coverUrl.value.trim())};books.push(currentUser?await api('/books',{method:'POST',body:draft}):{id:crypto.randomUUID(),...draft,read:false});if(!currentUser)save();}catch(error){coverStatus.textContent=error.message;return;}finally{submit.disabled=false;}form.reset();resetCoverPreview();$('#add-dialog').close();activeCategory='all';$('#search').value='';$('#filter').value='all';render();$('#list').scrollIntoView();};
 render();
+
+let guestBooks=books;
+function accountUi(){
+ $('#open-account').textContent=currentUser?'Аккаунт':'Войти';
+ $('#account-fields').hidden=!!currentUser;$('#account-actions').hidden=!!currentUser;$('#logout').hidden=!currentUser;
+ $('#account-info').textContent=currentUser?`Ты вошёл как ${currentUser.email}. Книги и прогресс сохраняются на сервере.`:'Войди или создай аккаунт. Новый аккаунт начнёт с 60 книг; гостевая доска останется в браузере.';
+ $('#storage-note').textContent=currentUser?'Личная доска синхронизирована.':'Прогресс сохраняется в этом браузере.';
+}
+$('#open-account').onclick=()=>{accountUi();$('#account-error').textContent=apiBase?'':'Вход появится после подключения сервера. Пока доступна гостевая доска.';$('#account-dialog').showModal();};
+$('#close-account').onclick=()=>$('#account-dialog').close();
+$('#account-form').onsubmit=async event=>{
+ event.preventDefault();const form=event.currentTarget;const action=event.submitter.value;const email=form.elements.email.value.trim().toLowerCase(),password=form.elements.password.value;
+ const buttons=Array.from(form.querySelectorAll('[type=submit]'));buttons.forEach(b=>b.disabled=true);$('#account-error').textContent='';
+ try{
+  if(action==='register')await api('/auth/register',{method:'POST',body:{email,password}});
+  await api('/auth/login',{method:'POST',body:{email,password},form:true});csrfToken='';
+  const user=await api('/auth/me'),remoteBooks=await api('/books');guestBooks=books;currentUser=user;books=remoteBooks;activeCategory='all';form.reset();accountUi();render();$('#account-dialog').close();
+ }catch(error){$('#account-error').textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}
+};
+$('#logout').onclick=async()=>{try{await api('/auth/logout',{method:'POST'});csrfToken='';currentUser=null;books=guestBooks;activeCategory='all';accountUi();render();$('#account-dialog').close();}catch(error){$('#account-error').textContent=error.message;}};
+if(apiBase)(async()=>{try{const user=await api('/auth/me'),remoteBooks=await api('/books');guestBooks=books;currentUser=user;books=remoteBooks;accountUi();render();}catch{/* Guest mode stays usable when the API is unavailable. */}})();

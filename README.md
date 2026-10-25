@@ -61,3 +61,11 @@ node --check assets/app.js
 ## Первый экран по референсу
 
 Первый экран использует `assets/reference-garage.png`: фон обработан ImageGen по предоставленному пользователем референсу, интерфейс и старые кресты удалены. Обложки на этом экране — часть иллюстрации; 24 доступные кнопки поверх них связаны с каталогом и реальным прогрессом. Координаты в `previewBooks` соответствуют изображению 1536×1024. На телефоне доска показывается отдельным блоком. Полный каталог ниже остаётся отдельными карточками. Счётчики не подменяются демонстрационными числами из референса.
+
+## Frontend / backend separation
+
+This repository is the static **frontend**. Java 21 / PostgreSQL API, migrations, tests and the complete Docker development stack live in [read-in-60-seconds-backend](https://github.com/B10nicle/read-in-60-seconds-backend).
+
+The frontend calls `/api` on the same origin, uses cookie sessions with CSRF tokens, and displays a login/registration dialog. Authenticated boards are stored on the server; guest boards stay in localStorage. Signing in does not import guest data automatically, and logout restores it. Cover URLs are required for new books.
+
+For full local startup follow the backend README. GitHub Pages currently remains a guest demo: Java/PostgreSQL hosting must be configured before public account login is enabled. `assets/account.js` disables API requests on `*.github.io`; use the full same-origin deployment for accounts. An optional `window.READ60_API_BASE` override must be defined before account.js if deploying elsewhere, with corresponding CORS and cookie settings.
