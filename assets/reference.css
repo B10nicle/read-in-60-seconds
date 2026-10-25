@@ -21,3 +21,5 @@ body{font-family:Roboto,Arial,sans-serif}body::before{content:none}.reference-st
 .focused-book>p{font-size:.85cqw;line-height:1.25;margin:8px 0 0;overflow-wrap:anywhere}.focused-book .fallback strong{font-size:1.4cqw}.focused-book .fallback span{font-size:.6cqw}
 .reference-stage .focused-book .cover:focus-visible{outline:none;filter:brightness(1.25)}
 @media(max-width:760px){.reference-stage .hero-board.category-view{min-height:430px;aspect-ratio:auto;height:550px;transform:none;width:calc(100% - 24px);margin:0 12px}.reference-stage .category-view #preview-board{padding:15px;gap:14px}.focused-heading{padding-bottom:12px}.focused-heading h2{font-size:30px}.focused-heading p{font-size:11px}.board-back{font-size:11px;padding:9px}.focused-books{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 13px}.focused-book>p{font-size:10px}.focused-book .fallback strong{font-size:14px}.focused-book .fallback span{font-size:7px}}
+
+#add-dialog{max-height:90dvh;overflow:auto}.cover-help{font-size:12px;line-height:1.5;color:#bcb8a9;margin:0}#cover-preview{width:90px;max-height:140px;object-fit:contain;align-self:center}#cover-preview[hidden]{display:none}

@@ -13,10 +13,12 @@ try{
 }catch{$('#storage-note').textContent='Не удалось прочитать сохранение. Показан стартовый список.';}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(books));}catch{$('#storage-note').textContent='Сохранение недоступно. Изменения останутся только до закрытия страницы.';}}
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
+function imageUrl(value){try{const url=new URL(value);return ['https:','http:'].includes(url.protocol)?url.href:'';}catch{return '';}}
 function cover(book,index,photo=false){
  const button=el('button','cover'+(book.read?' read':''));button.type='button';button.style.setProperty('--tilt',`${[-2,1,0,-1,2][index%5]}deg`);button.style.setProperty('--color',['#173747','#6b392b','#b29258','#243941','#272e25'][index%5]);button.setAttribute('aria-label',`${book.read?'Вернуть в планы':'Отметить прочитанной'}: ${book.title}`);button.setAttribute('aria-pressed',String(book.read));button.title=`${book.title} — ${book.author}`;
  const fallback=el('span','fallback');fallback.append(el('small','', 'READ IN 60'),el('strong','',book.title),el('span','',book.author));button.append(fallback);
- if(book.isbn&&!photo){const img=el('img');img.src=`https://covers.openlibrary.org/b/isbn/${encodeURIComponent(book.isbn)}-M.jpg?default=false`;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();button.append(img);}
+ const source=imageUrl(book.coverUrl)||(book.isbn?`https://covers.openlibrary.org/b/isbn/${encodeURIComponent(book.isbn)}-M.jpg?default=false`:'');
+ if(source&&!photo){const img=el('img');img.referrerPolicy='no-referrer';img.src=source;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();button.append(img);}
  button.append(el('span','cross'));button.onclick=()=>{const inPreview=button.closest('#preview-board')!==null;book.read=!book.read;save();render();const area=inPreview?$('#preview-board'):$('#full-board');const replacement=Array.from(area.querySelectorAll('button')).find(b=>b.dataset.id===book.id);(replacement||$('#filter')).focus({preventScroll:true});};button.dataset.id=book.id;return button;
 }
 // Four cover corners in the 1536 × 1024 photographic board.
@@ -77,5 +79,14 @@ function render(){
 $('#search').addEventListener('input',render);$('#filter').addEventListener('change',render);$('#clear-category').onclick=()=>{activeCategory='all';render();};
 for(const [id,name]of categories){const option=el('option','',name);option.value=id;$('#add-category').append(option);}
 $('#open-add').onclick=()=>$('#add-dialog').showModal();$('#close-add').onclick=()=>$('#add-dialog').close();
-$('#add-form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;const title=form.elements.title.value.trim(),author=form.elements.author.value.trim();if(!title||!author)return;books.push({id:crypto.randomUUID(),title,author,category:form.elements.category.value,read:false});save();form.reset();$('#add-dialog').close();activeCategory='all';$('#search').value='';$('#filter').value='all';render();$('#list').scrollIntoView();};
+const coverInput=$('#cover-url'),coverPreview=$('#cover-preview'),coverStatus=$('#cover-status');
+function resetCoverPreview(){coverPreview.hidden=true;coverPreview.removeAttribute('src');coverStatus.textContent='';coverInput.setCustomValidity('');}
+coverInput.addEventListener('input',()=>{
+ resetCoverPreview();const value=coverInput.value.trim();if(!value)return;
+ const url=imageUrl(value);if(!url){coverInput.setCustomValidity('Укажи ссылку на изображение, начинающуюся с https:// или http://.');return;}
+ coverStatus.textContent='Загружаем обложку…';coverPreview.referrerPolicy='no-referrer';
+ coverPreview.onload=()=>{coverPreview.hidden=false;coverStatus.textContent='';};
+ coverPreview.onerror=()=>{coverPreview.hidden=true;coverStatus.textContent='Не удалось загрузить картинку. Проверь ссылку; пока будет показана обложка с названием.';};coverPreview.src=url;
+});
+$('#add-form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;const title=form.elements.title.value.trim(),author=form.elements.author.value.trim();if(!title||!author)return;books.push({id:crypto.randomUUID(),title,author,category:form.elements.category.value,coverUrl:imageUrl(form.elements.coverUrl.value.trim()),read:false});save();form.reset();resetCoverPreview();$('#add-dialog').close();activeCategory='all';$('#search').value='';$('#filter').value='all';render();$('#list').scrollIntoView();};
 render();
