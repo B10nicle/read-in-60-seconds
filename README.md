@@ -1,71 +1,45 @@
-# Read in 60 Seconds
+# Read in 60 Seconds — Frontend
 
-Публичный проект трекера IT-книг, вдохновлённый доской из фильма [Gone in 60 Seconds («Угнать за 60 секунд»)](https://gonein60seconds.com/): собери список и вычёркивай прочитанное.
+Трекер IT-книг с доской в духе [Gone in 60 Seconds](https://gonein60seconds.com/). Независимый читательский проект; название — отсылка к фильму, а не таймер чтения.
 
-Read in 60 Seconds — отсылка к названию фильма, а не обещание прочитать книгу за минуту. Независимый проект для читателей, не связанный с правообладателями фильма.
+## Репозитории и статус
 
-## Статус
-
-Стартовый браузерный прототип. Каждый посетитель может вести собственный список на своём устройстве. Пока нет регистрации, серверной базы данных, синхронизации и публичных профилей. Публичность репозитория не означает, что сайт уже размещён в интернете.
-
-Исходные `/mnt/data/it-books-60/index.html` и `/mnt/data/code60-prototype.zip` из предыдущей беседы не были доступны при создании репозитория. Эта версия заново реализует доступное текстовое описание, а не копирует недоступный прототип.
+- Этот репозиторий — статический фронтенд на HTML, CSS и JavaScript.
+- [Бэкенд](https://github.com/B10nicle/read-in-60-seconds-backend) — Java 21, Spring Boot, PostgreSQL, миграции, интеграционные тесты и Docker Compose.
+- [GitHub Pages](https://b10nicle.github.io/read-in-60-seconds/) — гостевая демонстрация с сохранением в браузере. Публичный сервер авторизации пока не развёрнут.
+- Полный сервис с регистрацией, входом и личными досками запускается локально через Docker Compose из репозитория бэкенда.
 
 ## Возможности
 
-- Каталог из 60 IT-книг в восьми категориях; можно добавлять свои книги.
-- Добавление собственных книг и удаление с подтверждением.
-- Отметка прочитанного с вычёркиванием, счётчик и индикатор прогресса.
-- Поиск по названию и автору, фильтрация по статусу.
-- Сохранение в localStorage, адаптивная разметка и управление с клавиатуры.
+60 книг в восьми категориях, красные отметки прочитанного, поиск, фильтры и статистика. Категория открывается прямо на доске. Новые книги требуют название, автора, категорию и ссылку на обложку с предпросмотром. Если изображение недоступно, карточка показывает текстовую обложку.
 
-Прогресс привязан к браузеру и адресу сайта. Очистка данных браузера удалит доску. Не используйте её как единственное место хранения важного списка.
+В гостевом режиме данные хранятся в localStorage. После входа книги и прогресс сохраняются в PostgreSQL отдельно для каждого пользователя. Новый аккаунт получает стартовые 60 книг. Гостевая доска не импортируется автоматически; после выхода она снова доступна. Публичные профили и публикация досок пока не реализованы.
 
-## Запуск
+## Локальный запуск
 
-Нужен Python 3. В папке проекта:
+Полный стек: клонируйте фронтенд и бэкенд рядом и следуйте [инструкции Docker](https://github.com/B10nicle/read-in-60-seconds-backend#run-the-complete-application). В `.env` бэкенда задаются пароль БД, путь к фронтенду и порт. Java и PostgreSQL на компьютере устанавливать не нужно при стандартной сборке Docker.
+
+Только гостевой интерфейс:
 
 ```sh
 python3 -m http.server 8080 --bind 127.0.0.1
 ```
 
-Откройте http://localhost:8080. Сборка и внешние зависимости не нужны.
+Откройте http://127.0.0.1:8080. В таком режиме API отсутствует и авторизация не работает.
+
+## Подключение API
+
+Фронтенд обращается к `/api` на том же домене. Docker Nginx направляет эти запросы Java-приложению. Сессия — в HttpOnly cookie; запросы на изменение передают CSRF-токен. Пароль не сохраняется в localStorage.
+
+На `*.github.io` запросы API отключены до появления публичного сервера. При нестандартном размещении можно определить `window.READ60_API_BASE` до загрузки `assets/account.js`; сервер должен иметь соответствующие настройки CORS и cookie. Предпочтительный вариант — фронтенд и API на одном домене.
 
 ## Структура
 
-```text
-index.html          Лендинг и доска
-assets/styles.css   Гаражная доска и адаптивное оформление
-assets/catalog.js   Каталог из 60 книг
-assets/garage.png   Сгенерированный фон гаража
-assets/paper.svg    Текстура доски
-assets/app.js       Работа со списком и localStorage
-docs/ROADMAP.md      План публичного сервиса
-```
+- `index.html` — доска, формы книги и аккаунта.
+- `assets/app.js` — интерфейс и операции с книгами.
+- `assets/account.js` — API-клиент, сессия и CSRF.
+- `assets/catalog.js` — стартовый каталог гостевой доски.
+- `assets/reference.css`, `assets/styles.css` — оформление.
+- `assets/reference-garage.png` — фон гаража, `assets/read-cross.svg` — отметка прочитанного.
 
-## Проверка
-
-```sh
-node --check assets/app.js
-```
-
-В браузере проверьте добавление книги, вычёркивание, обновление страницы, поиск, оба фильтра и удаление. Проверьте ширину 375 px и переходы клавишей Tab. Пользовательский текст выводится через textContent.
-
-## Размещение
-
-Можно подключить GitHub Pages: Settings → Pages → Deploy from a branch → main → / (root). Либо разместить содержимое на любом статическом хостинге с HTTPS. Серверные возможности из дорожной карты потребуют отдельной реализации.
-
-## Визуальная версия
-
-Доска с обложками по категориям, красные кресты для прочитанного и реальные счётчики. Обложки загружаются из Open Library по ISBN; при отсутствии картинки показывается типографическая обложка. Шрифты — Google Fonts (Barlow Condensed, Caveat, Inter). Фон создан с помощью ImageGen. Старый прогресс `code60.board.v1` переносится в `read60.board.v2` при первом сохранении новой версии.
-
-## Первый экран по референсу
-
-Первый экран использует `assets/reference-garage.png`: фон обработан ImageGen по предоставленному пользователем референсу, интерфейс и старые кресты удалены. Обложки на этом экране — часть иллюстрации; 24 доступные кнопки поверх них связаны с каталогом и реальным прогрессом. Координаты в `previewBooks` соответствуют изображению 1536×1024. На телефоне доска показывается отдельным блоком. Полный каталог ниже остаётся отдельными карточками. Счётчики не подменяются демонстрационными числами из референса.
-
-## Frontend / backend separation
-
-This repository is the static **frontend**. Java 21 / PostgreSQL API, migrations, tests and the complete Docker development stack live in [read-in-60-seconds-backend](https://github.com/B10nicle/read-in-60-seconds-backend).
-
-The frontend calls `/api` on the same origin, uses cookie sessions with CSRF tokens, and displays a login/registration dialog. Authenticated boards are stored on the server; guest boards stay in localStorage. Signing in does not import guest data automatically, and logout restores it. Cover URLs are required for new books.
-
-For full local startup follow the backend README. GitHub Pages currently remains a guest demo: Java/PostgreSQL hosting must be configured before public account login is enabled. `assets/account.js` disables API requests on `*.github.io`; use the full same-origin deployment for accounts. An optional `window.READ60_API_BASE` override must be defined before account.js if deploying elsewhere, with corresponding CORS and cookie settings.
+Гостевой каталог и начальный `catalog.json` в бэкенде должны обновляться согласованно. Проверка JavaScript: `node --check assets/app.js` и `node --check assets/account.js`. API и изоляция аккаунтов проверяются в CI бэкенда на Java 21 и PostgreSQL.
